@@ -6,36 +6,30 @@ class RecintosZoo {
     analisaRecintos(animal, quantidade) {
         let resultado = { erro: "Não há recinto viável", recintosViaveis: false };
 
-        const animaisValidos = animais.map(animalEspecie => animalEspecie.especie);
-        if (!animaisValidos.includes(animal)) {
-            resultado.erro = "Animal inválido";
-            return resultado;
-        }
-
-        const quantidadeValida = (typeof quantidade === 'number' && quantidade > 0 && quantidade !== null);
-        if (!quantidadeValida) {
-            resultado.erro = "Quantidade inválida";
+        try {
+            this.validaAnimalInformado(animal);
+            this.validaQuantidadeInformada(quantidade);
+        } catch (error) {
+            resultado.erro = error.message;
             return resultado;
         }
 
         const animalIdentificado = animais.filter(animalEspecie => animalEspecie.especie === animal)[0];
-        const tamanhoTotalLote = animalIdentificado.tamanho * quantidade;
 
         recintos.forEach(recinto => {
             //Validações de Regras de Negócio
-            const espacoDisponivel = this.calculaEspacoDisponivel(recinto, animalIdentificado) - tamanhoTotalLote;
-            const espacoValido = espacoDisponivel >= 0;
-            const biomaValido = this.validaBioma(recinto, animalIdentificado);
-            const tipoAlimentacaoValido = this.validaTipoAlimentacao(recinto, animalIdentificado);
-            const ambienteMacacoValido = this.validaBiomaMacaco(recinto, animalIdentificado, quantidade);
-            const biomaHipopotamoValido = this.validaBiomaHipopotamo(recinto, animalIdentificado);
+            const espacoDisponivel = this.calculaEspacoDisponivel(recinto, animalIdentificado) - (animalIdentificado.tamanho * quantidade);
+            const biomaEhValido = this.validaBioma(recinto, animalIdentificado);
+            const tipoAlimentacaoEhValido = this.validaTipoAlimentacao(recinto, animalIdentificado);
+            const ambienteMacacoEhValido = this.validaBiomaMacaco(recinto, animalIdentificado, quantidade);
+            const biomaHipopotamoEhValido = this.validaBiomaHipopotamo(recinto, animalIdentificado);
 
 
             // Resultado final das regras de negócio
-            const recintoValido = espacoValido && biomaValido && tipoAlimentacaoValido && ambienteMacacoValido && biomaHipopotamoValido;
+            const recintoEhValido = (espacoDisponivel >= 0) && biomaEhValido && tipoAlimentacaoEhValido && ambienteMacacoEhValido && biomaHipopotamoEhValido;
 
             //Inclusão no resultado
-            if (recintoValido) {
+            if (recintoEhValido) {
                 if (!resultado.recintosViaveis) {
                     resultado.erro = null;
                     resultado.recintosViaveis = [`Recinto ${recinto.numero} (espaço livre: ${espacoDisponivel} total: ${recinto.tamanhoTotal})`]
@@ -48,6 +42,31 @@ class RecintosZoo {
         return resultado;
     }
 
+    /**
+     * Método responsável por calcular o espaço disponível dentro de um recinto.
+     * Caso haja uma espécie diferente da que está sendo inserida, adiciona +1 ao espaço ocupado.
+     * @param recinto 
+     * @param animal 
+     * @returns espacoDisponivel
+     */
+    calculaEspacoDisponivel(recinto, animal) {
+        let totalOcupado = 0;
+        recinto.ocupacoes.forEach(ocupacao => {
+            const animalOcupacao = animais.filter(animalEspecie => animalEspecie.especie === ocupacao.especie)[0];
+            totalOcupado += ocupacao.quantidade * animalOcupacao.tamanho;
+            if (animalOcupacao.especie !== animal.especie) {
+                totalOcupado += 1;
+            }
+        });
+        return recinto.tamanhoTotal - totalOcupado;
+    }
+
+    /**
+     * Método responsável por verificar se o bioma do recinto é adequado para o animal enviado.
+     * @param recinto 
+     * @param animal 
+     * @returns biomaEhValido
+     */
     validaBioma(recinto, animal) {
         let biomaValido = false
         recinto.biomas.forEach(biomaRecinto => {
@@ -58,6 +77,12 @@ class RecintosZoo {
         return biomaValido;
     }
 
+    /**
+     * Método responsável por garantir que animais carnívoros só possam ficar em recintos com animais de mesma espécie.
+     * @param recinto 
+     * @param animal 
+     * @returns tipoAlimentacaoEhValido
+     */
     validaTipoAlimentacao(recinto, animal) {
         if (recinto.ocupacoes.length === 0) {
             return true;
@@ -74,6 +99,13 @@ class RecintosZoo {
         return tipoAlimentacaoValido;
     }
 
+    /**
+     * Métodos responsável por garantir que macacos não fiquem sozinhos em recinto.
+     * @param recinto 
+     * @param animal 
+     * @param quantidade 
+     * @returns ambienteMacacoEhValido
+     */
     validaBiomaMacaco(recinto, animal, quantidade) {
         // Regra dos Macacos
         if (animal.especie === 'MACACO' && quantidade === 1) {
@@ -84,6 +116,12 @@ class RecintosZoo {
         return true;
     }
 
+    /**
+     * Método responsável por garantir que hipopótamos só estejam com outra espécie em recintos que possuam biomas de savana e rio.
+     * @param recinto 
+     * @param animal 
+     * @returns biomaHipopotamoEhValido
+     */
     validaBiomaHipopotamo(recinto, animal) {
         // Regra do Hipopótamo
         if (animal.especie === 'HIPOPOTAMO' && recinto.ocupacoes.length > 0) {
@@ -98,18 +136,28 @@ class RecintosZoo {
         return true;
     }
 
-    calculaEspacoDisponivel(recinto, animal) {
-        let totalOcupado = 0;
-        recinto.ocupacoes.forEach(ocupacao => {
-            const animalOcupacao = animais.filter(animalEspecie => animalEspecie.especie === ocupacao.especie)[0];
-            totalOcupado += ocupacao.quantidade * animalOcupacao.tamanho;
-            if (animalOcupacao.especie !== animal.especie) {
-                totalOcupado += 1;
-            }
-        });
-        return recinto.tamanhoTotal - totalOcupado;
+    /**
+     * Método para validar animal informado.
+     * @param animal 
+     */
+    validaAnimalInformado(animal) {
+        const animaisValidos = animais.map(animalEspecie => animalEspecie.especie);
+        if (!animaisValidos.includes(animal)) {
+            throw new Error("Animal inválido");
+        }
     }
 
+    /**
+     * Método para validar quantidade informada.
+     * @param quantidade 
+     */
+    validaQuantidadeInformada(quantidade) {
+        const quantidadeValida = (typeof quantidade === 'number' && quantidade > 0 && quantidade !== null);
+        if (!quantidadeValida) {
+            throw new Error("Quantidade inválida");
+        }
+    }
+    
 }
 
 export { RecintosZoo as RecintosZoo };
