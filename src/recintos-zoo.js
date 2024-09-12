@@ -27,10 +27,11 @@ class RecintosZoo {
             const espacoValido = espacoDisponivel >= 0;
             const biomaValido = this.validaBioma(recinto, animalIdentificado);
             const tipoAlimentacaoValido = this.validaTipoAlimentacao(recinto, animalIdentificado);
+            const ambienteMacacoValido = this.validaBiomaMacaco(recinto, animalIdentificado, quantidade);
 
             // Resultado final das regras de negócio
-            const recintoValido = espacoValido && biomaValido && tipoAlimentacaoValido;
-            
+            const recintoValido = espacoValido && biomaValido && tipoAlimentacaoValido && ambienteMacacoValido;
+
             //Inclusão no resultado
             if (recintoValido) {
                 if (!resultado.recintosViaveis) {
@@ -71,13 +72,23 @@ class RecintosZoo {
         return tipoAlimentacaoValido;
     }
 
+    validaBiomaMacaco(recinto, animal, quantidade) {
+        // Regra dos Macacos
+        if (animal.especie === 'MACACO' && quantidade === 1) {
+            if (recinto.ocupacoes.length === 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     calculaEspacoDisponivel(recinto, animal) {
         let totalOcupado = 0;
         recinto.ocupacoes.forEach(ocupacao => {
             const animalOcupacao = animais.filter(animalEspecie => animalEspecie.especie === ocupacao.especie)[0];
             totalOcupado += ocupacao.quantidade * animalOcupacao.tamanho;
             if (animalOcupacao.especie !== animal.especie) {
-                totalOcupado++;
+                totalOcupado += 1;
             }
         });
         return recinto.tamanhoTotal - totalOcupado;
