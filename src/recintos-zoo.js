@@ -28,9 +28,11 @@ class RecintosZoo {
             const biomaValido = this.validaBioma(recinto, animalIdentificado);
             const tipoAlimentacaoValido = this.validaTipoAlimentacao(recinto, animalIdentificado);
             const ambienteMacacoValido = this.validaBiomaMacaco(recinto, animalIdentificado, quantidade);
+            const biomaHipopotamoValido = this.validaBiomaHipopotamo(recinto, animalIdentificado);
+
 
             // Resultado final das regras de negócio
-            const recintoValido = espacoValido && biomaValido && tipoAlimentacaoValido && ambienteMacacoValido;
+            const recintoValido = espacoValido && biomaValido && tipoAlimentacaoValido && ambienteMacacoValido && biomaHipopotamoValido;
 
             //Inclusão no resultado
             if (recintoValido) {
@@ -76,6 +78,20 @@ class RecintosZoo {
         // Regra dos Macacos
         if (animal.especie === 'MACACO' && quantidade === 1) {
             if (recinto.ocupacoes.length === 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    validaBiomaHipopotamo(recinto, animal) {
+        // Regra do Hipopótamo
+        if (animal.especie === 'HIPOPOTAMO' && recinto.ocupacoes.length > 0) {
+            const biomaTemSavana = recinto.biomas.includes('savana');
+            const biomaTemRio = recinto.biomas.includes('rio');
+            const recintoComOutraEspecie = recinto.ocupacoes.filter(ocupacao => ocupacao.especie != 'HIPOPOTAMO').length > 0;
+
+            if (!(recintoComOutraEspecie && biomaTemSavana && biomaTemRio)) {
                 return false;
             }
         }
